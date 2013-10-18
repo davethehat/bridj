@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bridj</title>
+
+    <style type="text/css">
+
+        #bridj {
+            margin: 0;
+            padding: 0;
+        }
+
+        .game-prompt {
+            font-size: 16pt;
+            font-family: Arial,sans-serif;
+        }
+
+        #debug {
+            margin: 10pt;
+            padding: 5pt
+        }
+
+        #moves {
+            padding-left: 10px;
+        }
+
+        table {
+            border-collapse: separate;
+        }
+
+        td.magic div {
+            height: 42px;
+            width: 42px;
+            border: yellow solid 4px;
+        }
+
+        td.blackhole {
+            background-color: black !important;
+        }
+
+        td.cell {
+        }
+
+    </style>
+    <script src="script/jquery-1.6.4.js" type="text/javascript"></script>
+    <script src="script/bridj.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+        var colors = ['darkBlue', 'lightBlue', 'grey', 'pink', 'red'];
+        var PRAISE = [
+            'Amazing', 'Bravo', 'Stunning', 'Awesome', 'Terrrrrific',
+            'Fabulous', 'Tremendous', 'Outstanding'
+        ];
+        function pickColor(value) {
+            return colors[value+2];
+        }
+        function setNext(agent) {
+            $('#to-play').text(agent.name + ' to play');
+        }
+        function randomPraise() {
+            return PRAISE[Math.floor(Math.random() * PRAISE.length)];
+        }
+        $(function() {
+            var size = 7;
+            var game = Bridj.newGame(size);
+            var currentAgent = game.agents.RED;
+            var winner = null;
+
+            setNext(currentAgent);
+
+            $('#bridj').append('<table id="board">');
+            for (var row = 0; row < size; row++) {
+                $('#board').append('<tr id="row-' + row + '"></tr>');
+                for (var col = 0; col < size; col++) {
+                    var id = col + row*size;
+                    $('#row-' + row).append('<td id="cell-' + id + '" class="cell" x="' + col + '" y ="' + row + '"></td>');
+                    var cell = $('#cell-' + id);
+                    cell.css('height', 50);
+                    cell.css('width', 50);
+                    cell.css('background-color', pickColor(game.valueAt(col, row)));
+                    cell.attr('class',game.kindAt(col,row));
+                    cell.click(function() {
+                        if (winner) return;
+
+                        var xx = parseInt($(this).attr('x'), 10);
+                        var yy = parseInt($(this).attr('y'), 10);
+                        if (game.canPlay(currentAgent, xx, yy)) {
+
+                            var play = true;
+                            if (game.testThreeTimeRule(currentAgent, xx, yy)) {
+                                play = confirm('This will repeat a position for the third time: you will lose!');
+                            }
+
+                            if (!play) return;
+
+                            game.play(currentAgent, xx, yy);
+                            game.everyCell(function(value, x, y) {
+                                var id = x + y*size;
+                                $('#cell-' + id).css('background-color', pickColor(value));
+                            });
+                            winner = game.won();
+
+                            $('#debug').append('<div>'+game.hash().toString()+'</div>');
+                            $('#moves').append('<div class="move", style="float:left;margin-right:10px">' + currentAgent.name.charAt(0).toLowerCase() + xx + '-' + yy + '</div>');
+                            if (game.currentMoveNumber() % 2 ) {
+                                $('#moves').append('<div style="clear:both;height:1px"/>');
+                            }
+
+                            currentAgent = game.endTurn();
+                            if (winner) {
+                                $('#to-play').text(winner.name + ' wins! ' + randomPraise() + '!');
+                                $('#moves').append('<div style="clear:both;"/><div>Win for ' + winner.name +'! (' + winner.win + ')</div>')
+                            } else {
+                                setNext(currentAgent);
+                            }
+                        }
+                    });
+                }
+            }
+            $('.magic').append('<div class="x"></div>')
+        });
+    </script>
+</head>
+<body>
+    <div id='to-play' class='game-prompt'></div>
+    <div style='float:left;'>
+        <div id='bridj'></div>
+        <div id='debug'></div>
+    </div>
+    <div style='float:left;'>
+       <div id="moves"></div>
+    </div>
+</body>
+</html>
